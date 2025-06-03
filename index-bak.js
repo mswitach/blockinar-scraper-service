@@ -17,33 +17,40 @@ if (!process.env.BLOCKINAR_EMAIL || !process.env.BLOCKINAR_PASSWORD) {
 // Utility para esperar
 const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-// Proceso de login
+// Proceso de login: abre la página de login, ingresa credenciales y espera el dashboard
 const login = async (page) => {
   console.log('🔐 Iniciando proceso de login...');
   try {
+    // Ir a página de login
     await page.goto('https://blockinar.io/login', { waitUntil: 'domcontentloaded', timeout: 30000 });
     console.log('✅ Página de login cargada');
 
+    // Click en "Sign in with email"
     await page.waitForSelector('text="Sign in with email"', { timeout: 10000 });
     await page.click('text="Sign in with email"');
     console.log('✅ Clic en "Sign in with email"');
 
+    // Llenar email
     await page.waitForSelector('input[type="email"]', { timeout: 10000 });
     await page.fill('input[type="email"]', process.env.BLOCKINAR_EMAIL);
     console.log('✅ Email ingresado');
 
+    // Click en NEXT
     await page.waitForSelector('button:has-text("NEXT")', { timeout: 10000 });
     await page.click('button:has-text("NEXT")');
     console.log('✅ Clic en NEXT');
 
+    // Llenar password
     await page.waitForSelector('input[type="password"]', { timeout: 10000 });
     await page.fill('input[type="password"]', process.env.BLOCKINAR_PASSWORD);
     console.log('✅ Password ingresado');
 
+    // Click en SIGN IN
     await page.waitForSelector('button:has-text("SIGN IN")', { timeout: 10000 });
     await page.click('button:has-text("SIGN IN")');
     console.log('✅ Clic en SIGN IN');
 
+    // Esperar a que cargue el dashboard (selector visible en dashboard)
     await page.waitForSelector('div.total-number span', { timeout: 30000 });
     console.log('✅ Dashboard cargado correctamente');
   } catch (error) {
@@ -52,16 +59,18 @@ const login = async (page) => {
   }
 };
 
-// Función para scrapear un asset
+// Función para scrapear un asset dado su URL
 const scrapeAsset = async (page, url) => {
   try {
     await page.goto(url, {
       waitUntil: 'domcontentloaded',
-      timeout: 30000
+      timeout: 30000 // timeout aumentado para mayor robustez
     });
 
+    // Esperar al selector de las tarjetas que contienen métricas
     await page.waitForSelector('.cartridge-card', { timeout: 30000 });
 
+    // Extraer datos desde el DOM
     const result = await page.evaluate(() => {
       const record = {};
       const name = document.querySelector('.gateway-title')?.textContent.trim();
@@ -69,12 +78,14 @@ const scrapeAsset = async (page, url) => {
       const location = document.querySelector('.asset-info-container .layout-route')?.textContent.trim();
       if (location) record.cartridgeLocation = location;
 
+      // Obtener serial
       const serialSpans = Array.from(document.querySelectorAll('span'))
         .filter(s => s.textContent.trim().startsWith('Serial Number:'));
       if (serialSpans.length >= 2) {
         record.serialNumber = serialSpans[1].textContent.replace('Serial Number:', '').trim();
       }
 
+      // Obtener métricas en las tarjetas
       document.querySelectorAll('.cartridge-card').forEach(card => {
         const title = card.querySelector('.cartridge-card-title')?.textContent.trim();
         const value = card.querySelector('.cartridge-value')?.textContent.trim();
@@ -92,7 +103,7 @@ const scrapeAsset = async (page, url) => {
   }
 };
 
-// Generar gráfico con generateChart.js
+// Función para generar el gráfico invocando un script externo (generateChart.js)
 const generateChart = () => {
   return new Promise((resolve, reject) => {
     console.log('📊 Generando gráfico con los datos actualizados...');
@@ -115,10 +126,10 @@ const generateChart = () => {
 const assetUrls = [
   "https://blockinar.io/things/asset-info?core_id=Qqkw4QTHKXA03PhfuiHI&tab=dashboard",
   "https://blockinar.io/things/asset-info?core_id=LBOxYd3kwznY1S0YszF7&tab=dashboard",
-  // ... agregar más URLs si es necesario
+  // ... agregar aquí todas las URLs que necesites
 ];
 
-// Scrapeo de todos los assets compartiendo sesión
+// Nueva función scrapeAllAssets que abre una pestaña por cada URL y comparte sesión via BrowserContext
 const scrapeAllAssets = async () => {
   const timestamp = new Date().toISOString();
   console.log(`🚀 Iniciando scraping: ${timestamp}`);
@@ -128,7 +139,7 @@ const scrapeAllAssets = async () => {
   let loginPage;
 
   try {
-    // Lanzar el navegador (sin --single-process)
+    // 1) Lanzar el navegador (sin --single-process)
     browser = await chromium.launch({
       headless: true,
       args: [
@@ -148,19 +159,19 @@ const scrapeAllAssets = async () => {
     });
     console.log('✅ Browser lanzado');
 
-    // Compartir sesión con un contexto
+    // 2) Crear un context para compartir la sesión de login entre pestañas
     context = await browser.newContext({
       viewport: { width: 1024, height: 768 },
       bypassCSP: true
     });
 
-    // Login inicial
+    // 3) Hacer login en una pestaña de "loginPage"
     loginPage = await context.newPage();
     console.log('✅ Nueva página de login creada');
     await login(loginPage);
     console.log('✅ Login exitoso, sesión iniciada');
 
-    // Preparar salida NDJSON
+    // 4) Preparar archivo NDJSON de salida
     const outputDir = path.resolve('data', 'cliente1');
     fs.mkdirSync(outputDir, { recursive: true });
     const file = path.join(outputDir, 'dashboard-history.ndjson');
@@ -169,13 +180,14 @@ const scrapeAllAssets = async () => {
 
     let processedCount = 0;
 
-    // Procesar cada URL
+    // 5) Iterar sobre cada URL, abrir una pestaña nueva y scrapear
     for (const url of assetUrls) {
       let assetPage;
       try {
         assetPage = await context.newPage();
         console.log(`📥 Abriendo pestaña para: ${url}`);
 
+        // Verificar que la página no esté cerrada desde un error anterior
         if (assetPage.isClosed()) {
           throw new Error('La pestaña se cerró antes de iniciar scrapeo');
         }
@@ -190,6 +202,7 @@ const scrapeAllAssets = async () => {
         }
       } catch (assetError) {
         console.error(`❌ Error procesando ${url}:`, assetError.message);
+        // Si se desea, se podría reintentar aquí antes de pasar al siguiente URL
       } finally {
         if (assetPage && !assetPage.isClosed()) {
           await assetPage.close();
@@ -197,7 +210,8 @@ const scrapeAllAssets = async () => {
         }
       }
 
-      await wait(2000); // Pausa breve
+      // Breve pausa entre URLs para no sobrecargar el servidor
+      await wait(2000);
     }
 
     console.log(`✅ Scraping completado. Procesados: ${processedCount}/${assetUrls.length}`);
@@ -205,6 +219,7 @@ const scrapeAllAssets = async () => {
     console.error('❌ Error durante el scraping general:', err.message);
     throw err;
   } finally {
+    // Cerrar loginPage, context y browser si existen
     try {
       if (loginPage && !loginPage.isClosed()) {
         await loginPage.close();
@@ -230,12 +245,13 @@ const scrapeAllAssets = async () => {
       console.warn('⚠️ Error cerrando browser:', e.message);
     }
 
+    // Forzar garbage collection si está disponible
     if (global.gc) global.gc();
     console.log('🧹 Cleanup final completado');
   }
 };
 
-// Bucle principal (infinito)
+// Función principal que ejecuta scrapeAllAssets y generateChart en un bucle infinito
 const mainLoop = async () => {
   let loopCount = 1;
 
@@ -250,6 +266,7 @@ const mainLoop = async () => {
       console.error('Error en ciclo de scraping:', err.message);
     }
 
+    // Monitorear memoria después de cada ciclo
     const memUsage = process.memoryUsage();
     console.log(`Memoria después del ciclo: ${Math.round(memUsage.heapUsed / 1024 / 1024)}MB`);
     if (memUsage.heapUsed > 300 * 1024 * 1024) {
@@ -265,7 +282,7 @@ const mainLoop = async () => {
   }
 };
 
-// Configurar servidor HTTP
+// Servidor HTTP con Express
 const app = express();
 app.use(cors());
 const PORT = process.env.PORT || 10000;
@@ -275,12 +292,12 @@ app.get('/', (_req, res) => {
   res.send('Blockinar Scraper Service 👍');
 });
 
-// Ruta /health
+// Nueva ruta /health
 app.get('/health', (_req, res) => {
   res.send('ok');
 });
 
-// Ruta /data para servir el NDJSON
+// Nueva ruta /data que envía el NDJSON de historial
 app.get('/data', (req, res) => {
   const dataFile = path.resolve('data', 'cliente1', 'dashboard-history.ndjson');
   if (!fs.existsSync(dataFile)) {
@@ -290,7 +307,7 @@ app.get('/data', (req, res) => {
   fs.createReadStream(dataFile).pipe(res);
 });
 
-// Señales de cierre
+// Capturar señales para cierre limpio
 process.on('SIGTERM', () => {
   console.log('Recibida señal SIGTERM, cerrando aplicación...');
   process.exit(0);
@@ -300,7 +317,7 @@ process.on('SIGINT', () => {
   process.exit(0);
 });
 
-// Inicio del servidor y del bucle principal
+// Arrancar servidor y bucle principal
 app.listen(PORT, () => {
   console.log(`Listening on ${PORT}`);
   console.log(`Memoria inicial: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`);
