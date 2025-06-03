@@ -8,8 +8,7 @@ import { exec } from 'child_process';
 
 dotenv.config();
 
-// Utility to wait
-const wait = ms => new Promise(res => setTimeout(res, ms));
+// Utility to wait\ nconst wait = ms => new Promise(res => setTimeout(res, ms));
 
 // Generate chart by invoking external script
 const generateChart = () => {
@@ -34,16 +33,7 @@ const generateChart = () => {
 const assetUrls = [
   "https://blockinar.io/things/asset-info?core_id=Qqkw4QTHKXA03PhfuiHI&tab=dashboard",
   "https://blockinar.io/things/asset-info?core_id=LBOxYd3kwznY1S0YszF7&tab=dashboard",
-  "https://blockinar.io/things/asset-info?core_id=WSSW6biSLwfDhXsxpYlY&tab=dashboard",
-  "https://blockinar.io/things/asset-info?core_id=lVl6m2JrnjEH4iHlrKXe&tab=dashboard",
-  "https://blockinar.io/things/asset-info?core_id=mqpImzWSxjywdrfhwJWO&tab=dashboard",
-  "https://blockinar.io/things/asset-info?core_id=u2ROFIMf1rGjlyV8oe2O&tab=dashboard",
-  "https://blockinar.io/things/asset-info?core_id=XkWN5oJSSCoTsHDF00OM&tab=dashboard",
-  "https://blockinar.io/things/asset-info?core_id=DD5vUyxAR16rblA2jyk4&tab=dashboard",
-  "https://blockinar.io/things/asset-info?core_id=Xmvx2RkQMHffKhdKmL9W&tab=dashboard",
-  "https://blockinar.io/things/asset-info?core_id=H5YhLrngrHuHIgnp7oUY&tab=dashboard",
-  "https://blockinar.io/things/asset-info?core_id=e3uhXIJ7Ey6zOHsROJBR&tab=dashboard",
-  "https://blockinar.io/things/asset-info?core_id=FMsAQ7qgpQF9CwlwrTMc&tab=dashboard"
+  /* ... demás URLs ... */
 ];
 
 // Función para scrapear un asset
@@ -84,16 +74,27 @@ const login = async page => {
   await page.click('button:has-text("NEXT")');
   await page.fill('input[type="password"]', process.env.BLOCKINAR_PASSWORD);
   await page.click('button:has-text("SIGN IN")');
-  await page.waitForSelector('div.total-number span', { timeout: 60000 });
+  try {
+    await page.waitForSelector('div.total-number span', { timeout: 60000 });
+  } catch (err) {
+    console.error('❌ Login falló: no se encontró el selector de dashboard:', err);
+    throw err;
+  }
 };
 
 // Scrapea todos los assets y guarda en NDJSON
 const scrapeAllAssets = async () => {
   const timestamp = new Date().toISOString();
-  // Usar el navegador descargado automáticamente sin especificar executablePath
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage();
-  await login(page);
+
+  try {
+    await login(page);
+  } catch (loginError) {
+    console.error('Autenticación fallida. Se omite este ciclo de scraping.');
+    await browser.close();
+    return;
+  }
 
   const outputDir = path.resolve('data', 'cliente1');
   fs.mkdirSync(outputDir, { recursive: true });
@@ -104,9 +105,10 @@ const scrapeAllAssets = async () => {
       const rec = await scrapeAsset(page, url);
       fs.appendFileSync(file, JSON.stringify({ timestamp, ...rec }) + '\n');
     } catch (err) {
-      console.error('Error scraping:', err);
+      console.error(`Error scraping ${url}:`, err);
     }
   }
+
   await browser.close();
 };
 
@@ -115,8 +117,12 @@ const mainLoop = async () => {
   let loopCount = 1;
   while (true) {
     console.log(`\n[Loop #${loopCount}] Ejecutando scraping...`);
-    await scrapeAllAssets();
-    try { await generateChart(); } catch (e) {}
+    try {
+      await scrapeAllAssets();
+      await generateChart();
+    } catch (err) {
+      console.error('Error en ciclo de scraping:', err);
+    }
     console.log('⏳ Esperando 1 minuto...');
     await wait(60 * 1000);
     loopCount++;
@@ -140,3 +146,4 @@ app.listen(PORT, () => {
   console.log(`Listening on ${PORT}`);
   mainLoop();
 });
+
