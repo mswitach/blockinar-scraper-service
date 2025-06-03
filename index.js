@@ -90,13 +90,11 @@ const login = async page => {
 // Scrapea todos los assets y guarda en NDJSON
 const scrapeAllAssets = async () => {
   const timestamp = new Date().toISOString();
-  // Se añade executablePath para usar el Chromium descargado en Render
-  const browser = await chromium.launch({
-    headless: true,
-    executablePath: chromium.executablePath()
-  });
+  // Dejar que Playwright use el binario descargado automáticamente
+  const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage();
   await login(page);
+
 
   const outputDir = path.resolve('data', 'cliente1');
   fs.mkdirSync(outputDir, { recursive: true });
