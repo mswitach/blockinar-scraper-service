@@ -139,7 +139,7 @@ const scrapeAllAssets = async () => {
   let loginPage;
 
   try {
-    // 1) Lanzar el navegador
+    // 1) Lanzar el navegador (sin --single-process)
     browser = await chromium.launch({
       headless: true,
       args: [
@@ -149,7 +149,7 @@ const scrapeAllAssets = async () => {
         '--disable-accelerated-2d-canvas',
         '--no-first-run',
         '--no-zygote',
-        '--single-process',
+        /* '--single-process',  <--- eliminado */
         '--disable-gpu',
         '--memory-pressure-off',
         '--disable-background-timer-throttling',
@@ -287,8 +287,24 @@ const app = express();
 app.use(cors());
 const PORT = process.env.PORT || 10000;
 
+// Ruta raíz
 app.get('/', (_req, res) => {
   res.send('Blockinar Scraper Service 👍');
+});
+
+// Nueva ruta /health
+app.get('/health', (_req, res) => {
+  res.send('ok');
+});
+
+// Nueva ruta /data que envía el NDJSON de historial
+app.get('/data', (req, res) => {
+  const dataFile = path.resolve('data', 'cliente1', 'dashboard-history.ndjson');
+  if (!fs.existsSync(dataFile)) {
+    return res.status(404).send('NDJSON file not found');
+  }
+  res.setHeader('Content-Type', 'application/x-ndjson');
+  fs.createReadStream(dataFile).pipe(res);
 });
 
 // Capturar señales para cierre limpio
