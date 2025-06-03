@@ -128,7 +128,7 @@ const scrapeAllAssets = async () => {
   let loginPage;
 
   try {
-    // Lanzar el navegador (sin --single-process)
+    // Lanzar el navegador sin "--single-process"
     browser = await chromium.launch({
       headless: true,
       args: [
