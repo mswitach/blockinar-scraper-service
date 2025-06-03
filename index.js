@@ -1,4 +1,3 @@
-// index.js
 import express from 'express';
 import cors from 'cors';
 import { chromium } from 'playwright';
@@ -91,7 +90,11 @@ const login = async page => {
 // Scrapea todos los assets y guarda en NDJSON
 const scrapeAllAssets = async () => {
   const timestamp = new Date().toISOString();
-  const browser = await chromium.launch({ headless: true });
+  // Se añade executablePath para usar el Chromium descargado en Render
+  const browser = await chromium.launch({
+    headless: true,
+    executablePath: chromium.executablePath()
+  });
   const page = await browser.newPage();
   await login(page);
 
@@ -107,7 +110,6 @@ const scrapeAllAssets = async () => {
       console.error('Error scraping:', err);
     }
   }
-
   await browser.close();
 };
 
@@ -115,9 +117,9 @@ const scrapeAllAssets = async () => {
 const mainLoop = async () => {
   let loopCount = 1;
   while (true) {
-    console.log(`[Loop #${loopCount}] Ejecutando scraping...`);
+    console.log(`\n[Loop #${loopCount}] Ejecutando scraping...`);
     await scrapeAllAssets();
-    try { await generateChart(); } catch {}
+    try { await generateChart(); } catch (e) {}
     console.log('⏳ Esperando 1 minuto...');
     await wait(60 * 1000);
     loopCount++;
