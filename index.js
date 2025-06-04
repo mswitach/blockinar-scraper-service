@@ -264,42 +264,29 @@ const scrapeAllAssets = async () => {
   }
 };
 
-// Bucle principal (infinito)
-const mainLoop = async () => {
-  let loopCount = 1;
+// Ejecución única
+const runOnce = async () => {
+  console.log("🚀 Ejecutando scraping una sola vez...");
+  console.log(
+    `Memoria usada: ${Math.round(
+      process.memoryUsage().heapUsed / 1024 / 1024
+    )}MB`
+  );
 
-  while (true) {
-    console.log(`\n[Loop #${loopCount}] Ejecutando scraping...`);
-    console.log(
-      `Memoria usada: ${Math.round(
-        process.memoryUsage().heapUsed / 1024 / 1024
-      )}MB`
-    );
-
-    try {
-      await scrapeAllAssets();
-      await generateChart();
-    } catch (err) {
-      console.error("Error en ciclo de scraping:", err.message);
-    }
-
-    const memUsage = process.memoryUsage();
-    console.log(
-      `Memoria después del ciclo: ${Math.round(
-        memUsage.heapUsed / 1024 / 1024
-      )}MB`
-    );
-    if (memUsage.heapUsed > 300 * 1024 * 1024) {
-      console.log("⚠️ Memoria alta, ejecutando limpieza…");
-      if (global.gc) {
-        global.gc();
-      }
-    }
-
-    console.log("⏳ Esperando 1 minuto...");
-    await wait(60 * 1000);
-    loopCount++;
+  try {
+    await scrapeAllAssets();
+    await generateChart();
+    console.log("✅ Scraping completado exitosamente");
+  } catch (err) {
+    console.error("❌ Error en scraping:", err.message);
   }
+
+  const memUsage = process.memoryUsage();
+  console.log(
+    `Memoria final: ${Math.round(
+      memUsage.heapUsed / 1024 / 1024
+    )}MB`
+  );
 };
 
 // Configurar servidor HTTP
@@ -337,7 +324,7 @@ process.on("SIGINT", () => {
   process.exit(0);
 });
 
-// Inicio del servidor y del bucle principal
+// Inicio del servidor y ejecución única
 app.listen(PORT, () => {
   console.log(`Listening on ${PORT}`);
   console.log(
@@ -345,5 +332,5 @@ app.listen(PORT, () => {
       process.memoryUsage().heapUsed / 1024 / 1024
     )}MB`
   );
-  mainLoop();
+  runOnce(); // Cambiar mainLoop() por runOnce()
 });
