@@ -283,9 +283,7 @@ const runOnce = async () => {
 
   const memUsage = process.memoryUsage();
   console.log(
-    `Memoria final: ${Math.round(
-      memUsage.heapUsed / 1024 / 1024
-    )}MB`
+    `Memoria final: ${Math.round(memUsage.heapUsed / 1024 / 1024)}MB`
   );
 };
 
@@ -312,6 +310,18 @@ app.get("/data", (req, res) => {
   }
   res.setHeader("Content-Type", "application/x-ndjson");
   fs.createReadStream(dataFile).pipe(res);
+});
+
+// Ruta para ejecutar scraping manualmente
+app.get("/scrape", async (req, res) => {
+  try {
+    console.log("🔄 Scraping iniciado desde endpoint /scrape");
+    await runOnce();
+    res.json({ success: true, message: "Scraping completado exitosamente" });
+  } catch (error) {
+    console.error("❌ Error en scraping desde endpoint:", error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
 });
 
 // Señales de cierre
