@@ -64,10 +64,10 @@ const scrapeAsset = async (page, url) => {
   try {
     await page.goto(url, {
       waitUntil: "domcontentloaded",
-      timeout: 30000,
+      timeout: 60000,
     });
 
-    await page.waitForSelector(".cartridge-card", { timeout: 30000 });
+    await page.waitForSelector(".cartridge-card", { timeout: 60000 });
 
     const result = await page.evaluate(() => {
       const record = {};
