@@ -306,7 +306,9 @@ app.get("/health", (_req, res) => {
 app.get("/data", (req, res) => {
   const dataFile = path.resolve("data", "cliente1", "dashboard-history.ndjson");
   if (!fs.existsSync(dataFile)) {
-    return res.status(404).send("NDJSON file not found");
+    return res.json({ 
+      message: "No data available yet. Run /scrape first to generate data." 
+    });
   }
   res.setHeader("Content-Type", "application/x-ndjson");
   fs.createReadStream(dataFile).pipe(res);
