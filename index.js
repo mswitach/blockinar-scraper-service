@@ -1,16 +1,8 @@
 import express from 'express';
 import cors from 'cors';
-import fs from 'fs';
 import path from 'path';
-import dotenv from 'dotenv';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-import { runScraper } from './scraper.js';
-
-dotenv.config();
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import fs from 'fs/promises';
+import scraper from './scraper.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -18,31 +10,30 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
+// Servir carpeta data para acceder al NDJSON
+app.use('/data', express.static(path.resolve('./data')));
+
 app.get('/', (req, res) => {
-  res.send('Blockinar scraper está funcionando');
+  res.json({ message: 'Blockinar scraper service is running' });
 });
 
 app.post('/scrape', async (req, res) => {
   try {
-    await runScraper(); // función principal del scraper
-    res.status(200).json({ message: 'Scraping ejecutado correctamente' });
+    await scraper.scrape();
+
+    const filePath = path.resolve('./data/data.ndjson');
+    try {
+      const stats = await fs.stat(filePath);
+      res.json({ message: 'Scraping ejecutado correctamente', fileSize: stats.size });
+    } catch (err) {
+      res.status(500).json({ message: 'Scraping ejecutado, pero no se encontró el archivo.', error: err.message });
+    }
   } catch (error) {
-    console.error('Error al ejecutar el scraper:', error);
-    res.status(500).json({ error: 'Error al ejecutar el scraper' });
+    res.status(500).json({ message: 'Error ejecutando el scraper', error: error.message });
   }
-});
-
-app.get('/data', (req, res) => {
-  const filePath = path.resolve(__dirname, 'data.ndjson');
-
-  if (!fs.existsSync(filePath)) {
-    return res.status(404).send('NDJSON file not found');
-  }
-
-  res.download(filePath, 'data.ndjson');
 });
 
 app.listen(PORT, () => {
-  console.log(`Servidor escuchando en el puerto ${PORT}`);
+  console.log(`Server listening on port ${PORT}`);
 });
 
