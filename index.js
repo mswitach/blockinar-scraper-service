@@ -10,7 +10,6 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Servir carpeta data para acceder al NDJSON
 app.use('/data', express.static(path.resolve('./data')));
 
 app.get('/', (req, res) => {
@@ -19,9 +18,9 @@ app.get('/', (req, res) => {
 
 app.post('/scrape', async (req, res) => {
   try {
-    await scraper.scrape();
+    await scraper();
 
-    const filePath = path.resolve('./data/data.ndjson');
+    const filePath = path.resolve('./data/scraped-data.ndjson');
     try {
       const stats = await fs.stat(filePath);
       res.json({ message: 'Scraping ejecutado correctamente', fileSize: stats.size });
