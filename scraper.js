@@ -16,18 +16,29 @@ async function scraper() {
 
     const filePath = path.join(dataDir, 'scraped-data.ndjson');
 
-    const stream = fs.createWriteStream(filePath, { flags: 'w' });
-    for (const item of scrapedData) {
-      stream.write(JSON.stringify(item) + '\n');
-    }
-    stream.end();
+    return new Promise((resolve, reject) => {
+      const stream = fs.createWriteStream(filePath, { flags: 'w' });
 
-    return true;
+      for (const item of scrapedData) {
+        stream.write(JSON.stringify(item) + '\n');
+      }
+
+      stream.end();
+
+      stream.on('finish', () => {
+        resolve(true);
+      });
+
+      stream.on('error', (err) => {
+        reject(err);
+      });
+    });
+
   } catch (error) {
     console.error('Error en scraper:', error);
     throw error;
   }
 }
 
-export default scraper;
+export { scraper };
 
