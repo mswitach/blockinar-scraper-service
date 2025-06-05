@@ -17,8 +17,8 @@ const login = async (page, email, password) => {
 
 const scrapeAsset = async (page, url) => {
   try {
-    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
-    await page.waitForSelector(".cartridge-card", { timeout: 60000 });
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 90000 });
+    await page.waitForSelector(".cartridge-card", { timeout: 90000 });
 
     return await page.evaluate(() => {
       const record = {};
