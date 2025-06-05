@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import fs from 'fs/promises';
-import scraper from './scraper.js';
+import { scraper } from './scraper.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
