@@ -1,40 +1,35 @@
-// scraper.js
+import fs from 'fs';
+import path from 'path';
 
-import { chromium } from 'playwright';
-import fs from 'fs/promises';
+const dataDir = path.resolve('./data');
 
-async function scrape() {
-  console.log('Iniciando scraping...');
-  const browser = await chromium.launch();
-  const page = await browser.newPage();
+if (!fs.existsSync(dataDir)) {
+  fs.mkdirSync(dataDir);
+}
 
+async function scraper() {
   try {
-    // Ejemplo simple: ir a blockinar (puedes poner la URL que uses)
-    await page.goto('https://blockinar.com');
+    // Simulación de datos scrapeados
+    const scrapedData = [
+      { id: 1, title: 'Asset 1', location: 'Buenos Aires', metric: 123 },
+      { id: 2, title: 'Asset 2', location: 'Cordoba', metric: 456 }
+    ];
 
-    // Esperar algo (modificá según lo que scrapees)
-    await page.waitForTimeout(2000);
+    const filePath = path.join(dataDir, 'scraped-data.ndjson');
+    
+    // Escribir cada objeto JSON como línea separada en el archivo NDJSON
+    const stream = fs.createWriteStream(filePath, { flags: 'w' }); // 'w' para sobreescribir cada vez
+    for (const item of scrapedData) {
+      stream.write(JSON.stringify(item) + '\n');
+    }
+    stream.end();
 
-    // Aquí debería ir tu lógica real de scraping,
-    // ej: obtener datos, armar objeto con info
-
-    const data = {
-      timestamp: new Date().toISOString(),
-      example: 'datos de prueba',
-    };
-
-    // Guardar en archivo NDJSON
-    const line = JSON.stringify(data) + '\n';
-    await fs.appendFile('./data/scraped-data.ndjson', line);
-
-    console.log('Scraping finalizado y guardado.');
+    return true;
   } catch (error) {
-    console.error('Error durante scraping:', error);
+    console.error('Error en scraper:', error);
     throw error;
-  } finally {
-    await browser.close();
   }
 }
 
-export default { scrape };
+export { scraper };
 
