@@ -5,14 +5,14 @@ import path from "path";
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const login = async (page, email, password) => {
-  await page.goto("https://blockinar.io/login", { waitUntil: "domcontentloaded", timeout: 30000 });
-  await page.waitForSelector('text="Sign in with email"', { timeout: 10000 });
+  await page.goto("https://blockinar.io/login", { waitUntil: "domcontentloaded", timeout: 90000 });
+  await page.waitForSelector('text="Sign in with email"', { timeout: 90000 });
   await page.click('text="Sign in with email"');
   await page.fill('input[type="email"]', email);
   await page.click('button:has-text("NEXT")');
   await page.fill('input[type="password"]', password);
   await page.click('button:has-text("SIGN IN")');
-  await page.waitForSelector("div.total-number span", { timeout: 90000 });
+  await page.waitForSelector("div.total-number span", { timeout: 120000 });
 };
 
 const scrapeAsset = async (page, url) => {
