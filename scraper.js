@@ -12,7 +12,7 @@ const login = async (page, email, password) => {
   await page.click('button:has-text("NEXT")');
   await page.fill('input[type="password"]', password);
   await page.click('button:has-text("SIGN IN")');
-  await page.waitForSelector("div.total-number span", { timeout: 30000 });
+  await page.waitForSelector("div.total-number span", { timeout: 90000 });
 };
 
 const scrapeAsset = async (page, url) => {
